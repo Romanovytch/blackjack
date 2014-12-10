@@ -1,0 +1,101 @@
+/*
+** game.c for game in /home/givern_f/Modules/Prog-Elem-C/blackjack
+** 
+** Made by Florian Givernaud
+** Login   <givern_f@epitech.net>
+** 
+** Started on  Wed Oct  1 09:40:10 2014 Florian Givernaud
+** Last update Sun Oct 12 18:56:09 2014 Florian Givernaud
+*/
+
+#include <stdlib.h>
+#include "blackjack.h"
+
+int		game_command(t_deck *bank, t_deck *player, t_deck *croupier, int *mise)
+{
+  char		*str;
+
+  my_putstr("\nQue voulez-vous faire ?\n");
+  while (42)
+    {
+      str = get_next_line(0);
+      if (my_strcmp(str, "carte") == 0)
+	return(carte_choice(bank, player));
+      else if (my_strcmp(str, "je reste") == 0) 
+	return (RESTE);
+      else if (my_strcmp(str, "assurance") == 0)
+	{
+	  if (check_assurance(croupier) == 1)
+	    return (ASSUR);
+	  else
+	    my_putstr("Impossible. Le jeu du croupier doit être un As.\n");
+	}
+      else if (my_strcmp(str, "doubler") == 0)
+	return (doubl_choice(bank, player, mise));
+      else if (my_strcmp(str, "abandonner") == 0)
+	return (ABAND);
+      else
+	my_putstr("Je n'ai pas compris votre demande. Tapez \"help\" pour plus d'informations\n");
+    }
+}
+
+t_deck	*game_first_tour(t_deck *bank, t_deck *deck, int nb_cards)
+{
+  t_card	*card;
+  int		i;
+
+  i = 0;
+  while (i < nb_cards)
+    {
+      card = deal_a_card(&bank);
+      push_deck_back(card, &deck);
+      ++i;
+    }
+  return (deck);
+}
+
+t_deck	*game_croupier(t_deck *bank, t_deck *deck)
+{
+  t_card	*card;
+
+  while (make_score(deck) < 17)
+    {
+      card = deal_a_card(&bank);
+      push_deck_back(card, &deck);
+    }
+  return (deck);
+}
+
+int	the_game(double argent)
+{
+  t_deck        *bank;
+  t_deck        *player;
+  t_deck        *croupier;
+  int		mise;
+  int           stop;
+  double	money;
+
+  stop = 0;
+  mise = 0;
+  player = NULL;
+  croupier = NULL;
+  bank = create_deck();
+  player = game_first_tour(bank, player, 2);
+  croupier = game_first_tour(bank, croupier, 1);
+  mise = bet(argent);
+  while (stop == CARTE)
+    {
+      game_header(player, croupier, argent, mise);
+      stop = game_command(bank, player, croupier, &mise);
+    }
+  if (stop != SAUTE)
+    {
+      croupier = game_croupier(bank, croupier);
+      game_header(player, croupier, argent, mise);
+      if (make_score(croupier) > 21)
+	my_putstr("\nLa banque saute.\n");
+    }
+  game_header(player, croupier, argent, mise);
+  argent = argent + winner(player, croupier, mise, stop);
+  return (argent);
+}
